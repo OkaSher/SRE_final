@@ -1,0 +1,13 @@
+groups:
+  - name: node_app_alerts
+    rules:
+      - alert: NodeAppDown
+        expr: up{job="node-app"} == 0
+        for: 15s  # Wait for 3 consecutive failed scrapes (since interval is 5s) before firing the alert to prevent flapping
+        labels:
+          severity: critical
+          tier: application
+        annotations:
+          summary: "Critical Alert: Node.js target is DOWN"
+          description: "The Node.js application target '{{ $labels.instance }}' (job: '{{ $labels.job }}') has been unreachable or offline for more than 15 seconds."
+          runbook_url: "https://wiki.internal.net/sre/runbooks/node-app-down" # Production best practice: link a runbook for the on-call engineer
