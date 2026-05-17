@@ -1,0 +1,30 @@
+global:
+  scrape_interval:     15s # Default general scrape interval
+  evaluation_interval: 5s  # Evaluate alert rules every 5 seconds (rapid response to match 5s scrape)
+  scrape_timeout:      10s # Default timeout
+
+# Load rules files once and periodically evaluate them according to the global evaluation_interval.
+rule_files:
+  - "alert_rules.yml"
+
+# Alerting configuration (Points to an Alertmanager if added in the future)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           # - alertmanager:9093
+
+scrape_configs:
+  # 1. Self-monitoring scrape job for Prometheus itself
+  - job_name: 'prometheus'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 2. Target microservice scrape job (Node.js App running on Host VM on port 8080)
+  - job_name: 'node-app'
+    scrape_interval: 5s            # Scrape metrics every 5 seconds as requested
+    scrape_timeout: 4s             # Scrape timeout must be less than the scrape interval
+    metrics_path: '/metrics'       # Endpoint exposing Prometheus formatted metrics
+    static_configs:
+      - targets: ['node-app-container:8080']
