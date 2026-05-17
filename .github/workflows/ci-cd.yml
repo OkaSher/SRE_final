@@ -41,6 +41,7 @@ jobs:
           script: |
             set -e
             sudo docker pull ${{ env.IMAGE_NAME }}:latest
+            sudo docker ps -aq --filter "publish=8080" | xargs -r sudo docker rm -f
             sudo docker stop sre-heavy-app || true
             sudo docker rm sre-heavy-app || true
             sudo docker run -d \
