@@ -1,0 +1,50 @@
+name: CI-CD
+
+on:
+	push:
+		branches:
+			- main
+	workflow_dispatch:
+
+jobs:
+	build-and-deploy:
+		runs-on: ubuntu-latest
+
+		steps:
+			- name: Checkout repository
+				uses: actions/checkout@v4
+
+			- name: Set Docker image name
+				run: echo "IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}" >> $GITHUB_ENV
+
+			- name: Log in to Docker Hub
+				uses: docker/login-action@v3
+				with:
+					username: ${{ secrets.DOCKERHUB_USERNAME }}
+					password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+			- name: Build and push Docker image
+				uses: docker/build-push-action@v6
+				with:
+					context: ./app
+					push: true
+					tags: |
+						${{ env.IMAGE_NAME }}:latest
+						${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+			- name: Deploy on server over SSH
+				uses: appleboy/ssh-action@v1.0.3
+				with:
+					host: ${{ secrets.SSH_HOST }}
+					username: ${{ secrets.SSH_USER }}
+					key: ${{ secrets.SSH_PRIVATE_KEY }}
+					script: |
+						set -e
+						sudo docker pull ${{ env.IMAGE_NAME }}:latest
+						sudo docker stop sre-heavy-app || true
+						sudo docker rm sre-heavy-app || true
+						sudo docker run -d \
+							--name sre-heavy-app \
+							--restart unless-stopped \
+							-p 8080:8080 \
+							${{ env.IMAGE_NAME }}:latest
